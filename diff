@@ -1,0 +1,52 @@
+import cv2
+
+def filter_image(frame):
+    gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+    blur = cv2.GaussianBlur(gray, (5, 5), 0)
+    _, thresh = cv2.threshold(blur, 20, 255, cv2.THRESH_BINARY)
+    dilated = cv2.dilate(thresh, None, iterations=3)
+    return dilated
+
+cap = cv2.VideoCapture('MAX_0968.MP4')
+
+
+fps = cap.get(cv2.CAP_PROP_FPS)
+fourcc = cv2.VideoWriter_fourcc(*'MP4V')
+
+
+ret, frame1 = cap.read()
+if not ret:
+    print("Error reading video file")
+    cap.release()
+    cv2.destroyAllWindows()
+    exit()
+
+
+frame1 = cv2.resize(frame1, (0, 0), fx=0.5, fy=0.5)
+height, width, _ = frame1.shape
+
+out = cv2.VideoWriter('absdiff_mask.MP4', fourcc, fps, (width, height))
+
+while cap.isOpened():
+    ret, frame2 = cap.read()
+    if not ret:
+        break
+
+    frame2 = cv2.resize(frame2, (0, 0), fx=0.5, fy=0.5)
+    
+    diff = cv2.absdiff(frame1, frame2)
+    mask = filter_image(diff)
+
+    cv2.imshow('Frame', frame1)
+    cv2.imshow('Mask', mask)
+
+    out.write(cv2.cvtColor(mask, cv2.COLOR_GRAY2BGR))  # 将二值图像转换为BGR格式再写入视频
+
+    frame1 = frame2
+
+    if cv2.waitKey(50) == ord('q'):
+        break
+
+cap.release()
+out.release()
+cv2.destroyAllWindows()
